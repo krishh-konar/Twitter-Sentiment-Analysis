@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+
+''' 
+Fetches streaming tweets in real time.
+'''
+
+import API_Tokens as t
+import json
+from tweepy import OAuthHandler, API
+from tweepy.streaming import StreamListener
+from tweepy import Stream
+import os
+
+### Custom made listener Class; deals with all the incoming streaming data
+class MyListener(StreamListener):
+
+	def __init__(self,api=None):
+		#super(MyListener,self).__init__()
+		self.api=api
+		self.num_tweets=0
+
+	# Write all the incoming data in buffer.json file
+	def on_data(self,data):
+
+		try:
+			with open("tweets.json","a") as f:
+				j = json.loads(data)
+				tweet_text = j['text'].encode("utf-8")
+				print 't'
+				if self.num_tweets == 1500:
+					return False
+				#dump tweets as a dictionary for easy retrival
+				json.dump({"tweet":tweet_text},f)
+				f.write('\n')
+				self.num_tweets+=1
+
+		except Exception as e:
+			pass
+		return True
+
+	def on_error(self,status):
+		print status
+		return True
+
+
+def main():
+	#creating a REST_API instance
+	api, auth = authenticate()
+
+	try:
+		#creating Streaming_API instance
+		stream = Stream(auth, MyListener())
+		
+		#search query
+		query = raw_input('Search query: ')
+		stream.filter(track = [query])
+
+	except KeyboardInterrupt:
+		print '\n Stopped Fetching Tweets.'
+		exit()
+
+def authenticate():
+	''' Authentication for using twitter data '''
+	auth = OAuthHandler(t.CONSUMER_KEY, t.CONSUMER_SECRET)
+	auth.set_access_token(t.ACCESS_TOKEN,t.ACCESS_TOKEN_SECRET)
+	api = API(auth)
+	return api, auth
+
+if __name__ == '__main__':
+	main()
